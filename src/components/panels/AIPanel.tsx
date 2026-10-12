@@ -171,19 +171,35 @@ export const AIPanel: React.FC = () => {
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // User-provided API Keys stored in localStorage or Vite env
-  const [geminiKey, setGeminiKey] = useState<string>(() => localStorage.getItem('cadai_gemini_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
-  const [groqKey, setGroqKey] = useState<string>(() => localStorage.getItem('cadai_groq_key') || import.meta.env.VITE_GROQ_API_KEY || '');
-  const [anthropicKey, setAnthropicKey] = useState<string>(() => localStorage.getItem('cadai_anthropic_key') || import.meta.env.VITE_ANTHROPIC_API_KEY || '');
+  // Read all potential sources from Vite env
+  const envGroq = (import.meta.env.VITE_GROQ_API_KEY || '').trim();
+  const envGemini = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+  const envAnthropic = (import.meta.env.VITE_ANTHROPIC_API_KEY || '').trim();
+
+  // Smart detect: if user entered a gsk_ key under Anthropic or Groq, route to Groq
+  const initialGroq = localStorage.getItem('cadai_groq_key') ||
+    (envGroq.startsWith('gsk_') ? envGroq : (envAnthropic.startsWith('gsk_') ? envAnthropic : envGroq));
+  const initialGemini = localStorage.getItem('cadai_gemini_key') ||
+    (envGemini.startsWith('AIzaSy') ? envGemini : (envAnthropic.startsWith('AIzaSy') ? envAnthropic : envGemini));
+  const initialAnthropic = localStorage.getItem('cadai_anthropic_key') ||
+    (envAnthropic.startsWith('sk-ant') ? envAnthropic : '');
+
+  const [geminiKey, setGeminiKey] = useState<string>(initialGemini);
+  const [groqKey, setGroqKey] = useState<string>(initialGroq);
+  const [anthropicKey, setAnthropicKey] = useState<string>(initialAnthropic);
   const [activeProvider, setActiveProvider] = useState<'offline' | 'gemini' | 'groq' | 'anthropic'>('offline');
 
-  // Auto-detect best available provider on mount
+  // Auto-detect best available provider on mount and whenever keys change
   useEffect(() => {
-    if (geminiKey && geminiKey.trim() && !geminiKey.includes('your_')) {
-      setActiveProvider('gemini');
-    } else if (groqKey && groqKey.trim() && !groqKey.includes('your_')) {
+    const gKey = groqKey.trim();
+    const gemKey = geminiKey.trim();
+    const antKey = anthropicKey.trim();
+
+    if (gKey && (gKey.startsWith('gsk_') || !gKey.includes('your_'))) {
       setActiveProvider('groq');
-    } else if (anthropicKey && anthropicKey.trim() && !anthropicKey.includes('your_')) {
+    } else if (gemKey && (gemKey.startsWith('AIzaSy') || !gemKey.includes('your_'))) {
+      setActiveProvider('gemini');
+    } else if (antKey && (antKey.startsWith('sk-ant') || !antKey.includes('your_'))) {
       setActiveProvider('anthropic');
     } else {
       setActiveProvider('offline');
