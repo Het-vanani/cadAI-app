@@ -136,9 +136,8 @@ export const AIPanel: React.FC = () => {
     try {
       const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
-      // ── DEMO MODE — active when no API credits ──
-      // Change to false once you add credits at console.anthropic.com
-      const DEMO_MODE = !apiKey || true;
+      // DEMO MODE — active if no API key is set or using placeholder
+      const DEMO_MODE = !apiKey || !apiKey.trim() || apiKey.includes('your_anthropic');
 
       if (DEMO_MODE) {
         // Simulate a small delay so it feels real
